@@ -22,7 +22,9 @@
         <spring-cloud.version>2021.0.3</spring-cloud.version>
     </properties>
 
-    
+    <modules>
+        <module>scraper-service</module>
+    </modules>
 
     <dependencies>
         <dependency>
