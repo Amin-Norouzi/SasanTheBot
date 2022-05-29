@@ -23,7 +23,7 @@
     </properties>
 
     <modules>
-        <module>scraper-service</module>
+        <module>download-service</module>
     </modules>
 
     <dependencies>
