@@ -43,12 +43,12 @@ public class AvaMovieScraper {
                     if (downloadRow.select(".right-area a").attr("href").equals("")) {
                         continue;
                     }
+
                     String quality = downloadRow.select(".left-area .quality").text();
                     String size = downloadRow.select(".left-area .details")
                             .select("span.size").text()
                             .replace("حجم:", "").trim();
                     String url = downloadRow.select(".right-area a").attr("href");
-
 
                     links.add(Link.builder()
                             .quality(quality)
@@ -65,11 +65,78 @@ public class AvaMovieScraper {
         }
 
         return Download.builder()
-                .title("The lobster 2015")
-                .url(movieUrl)
+                .title("Moonshot 2022") // The title field must be omitted from the model.
+                .url(movieUrl)          // Also, I think this method should return a list of links not a download object.
                 .type(Type.MOVIE)
                 .provider(getProvider())
                 .movie(movie)
+                .build();
+    }
+
+    public Download downloadSeries(String seriesUrl) {
+        Document document = getDocument(seriesUrl);
+        List<Season> seasons = new ArrayList<>();
+
+        Integer number = 0;
+
+        for (Element seasonRow : document.select(".collapse.siteSingle__boxContent__serial")) {
+            List<String> qualities = new ArrayList<>();
+            List<Link> links = new ArrayList<>();
+
+            Integer episodes = Integer.valueOf(seasonRow.select(".collapse-content.siteSingle__boxContent__serialContent")
+                    .first()
+                    .select(".siteSingle__boxContent__serialContent__downloadHeader.siteSingle__boxContent__downloadHeader")
+                    .select("span")
+                    .get(1)
+                    .getElementsByTag("b").text());
+
+            for (Element seasonQualityRow : seasonRow.select(".collapse-content.siteSingle__boxContent__serialContent" +
+                    " .collapse.siteSingle__boxContent__serialContent__download")) {
+
+                String quality = seasonQualityRow.select(".siteSingle__boxContent__serialContent__downloadHeader." +
+                                "siteSingle__boxContent__downloadHeader")
+                        .select("span")
+                        .first()
+                        .getElementsByTag("b").text();
+
+                String size = seasonQualityRow.select(".siteSingle__boxContent__serialContent__downloadHeader." +
+                                "siteSingle__boxContent__downloadHeader")
+                        .select("span")
+                        .get(2)
+                        .getElementsByTag("b").text()
+                        .replace("گیگابایت", "GB")
+                        .replace("مگابایت", "MB")
+                        .trim();
+
+                for (Element downloadRow : seasonQualityRow.select("div.listslinks > ul").select("li")) {
+                    String url = downloadRow.select("a").attr("href");
+                    links.add(Link.builder()
+                            .quality(quality)
+                            .size(size)
+                            .url(url)
+                            .build());
+                }
+
+                qualities.add(quality);
+            }
+
+            number++;
+            seasons.add(Season.builder()
+                    .number(number)
+                    .episodes(episodes)
+                    .links(links)
+                    .qualities(qualities)
+                    .build());
+        }
+
+        Series series = Series.builder()
+                .seasons(seasons)
+                .build();
+
+        return Download.builder()
+                .provider(getProvider())
+                .type(Type.SERIES)
+                .series(series)
                 .build();
     }
 
@@ -79,10 +146,6 @@ public class AvaMovieScraper {
                 .address(baseUrl)
                 .isFiltered(false)
                 .build();
-    }
-
-    public Download downloadSeries(String seriesUrl) {
-        return null;
     }
 
     private Document getDocument(String url) {
