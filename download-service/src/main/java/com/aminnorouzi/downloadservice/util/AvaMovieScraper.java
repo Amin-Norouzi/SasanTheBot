@@ -4,6 +4,7 @@ import com.aminnorouzi.downloadservice.model.*;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,11 +23,14 @@ public class AvaMovieScraper {
     }
 
     public String search(String imdbId) {
-        return getDocument(baseUrl + searchQuery + imdbId)
-                .select(".col.col-70.home_loop_post article.sitePost")
-                .first()
+        Elements found = getDocument(baseUrl + searchQuery + imdbId)
+                .select(".col.col-70.home_loop_post article.sitePost");
+
+        if (!found.isEmpty()) return found.first()
                 .select(".more a")
                 .attr("href");
+
+        return null; // here should throw an exception
     }
 
     public Download downloadMovie(String movieUrl) {
@@ -47,7 +51,10 @@ public class AvaMovieScraper {
                     String quality = downloadRow.select(".left-area .quality").text();
                     String size = downloadRow.select(".left-area .details")
                             .select("span.size").text()
-                            .replace("حجم:", "").trim();
+                            .replace("حجم:", "")
+                            .replace("گیگابایت", "GB")
+                            .replace("مگابایت", "MB")
+                            .trim();
                     String url = downloadRow.select(".right-area a").attr("href");
 
                     links.add(Link.builder()
