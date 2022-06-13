@@ -35,6 +35,82 @@ public class ZarfilmScraper {
         return null; // here should throw an exception
     }
 
+    public Download downloadSeries(String seriesUrl) {
+        Document document = getDocument(seriesUrl);
+        List<Season> seasons = new ArrayList<>();
+
+        Integer number = 0;
+
+        for (Element seasonRow : document.select(".body_series_dlbox .item_season")) {
+            List<String> qualities = new ArrayList<>();
+            List<Link> links = new ArrayList<>();
+
+            Integer episodes = Integer.valueOf(
+                    seasonRow.select(".head_quality_season .item_season_quality_right.part_count")
+                            .select(".value_text_head_right_qulity")
+                            .first()
+                            .text()
+                            .replace("تعداد قسمت :", "")
+                            .trim());
+
+            for (Element seasonQualityRow : seasonRow.select(".inner_body_item_season .item_quality_season")) {
+                if (!seasonQualityRow.select(".head_quality_season .right_side")
+                        .select(".label_subtitle").text().equals("زیرنویس")
+                        || seasonQualityRow.select(".item_parts_holder .item_part").isEmpty()) {
+                    continue;
+                }
+
+                String quality = seasonQualityRow.select(".head_quality_season .item_season_quality_right")
+                        .select(".value_text_head_right_qulity")
+                        .first()
+                        .text()
+                        .replace("کیفیت :", "")
+                        .trim();
+
+                String size = seasonQualityRow.select(".head_quality_season .item_season_quality_right.size_average")
+                        .select(".value_text_head_right_qulity")
+                        .text()
+                        .replace("گیگابایت", "GB")
+                        .replace("مگابایت", "MB")
+                        .trim();
+
+                for (Element downloadRow : seasonQualityRow.select(".item_parts_holder .item_part")) {
+                    String url = downloadRow.select("a").attr("href");
+                    links.add(Link.builder()
+                            .quality(quality)
+                            .size(size)
+                            .url(url)
+                            .build());
+                }
+
+                qualities.add(quality);
+            }
+
+            number++;
+
+            if (qualities.isEmpty()) {
+                continue;
+            }
+
+            seasons.add(Season.builder()
+                    .number(number)
+                    .episodes(episodes)
+                    .links(links)
+                    .qualities(qualities)
+                    .build());
+        }
+
+        Series series = Series.builder()
+                .seasons(seasons)
+                .build();
+
+        return Download.builder()
+                .provider(getProvider())
+                .type(Type.SERIES)
+                .series(series)
+                .build();
+    }
+
     public Download downloadMovie(String movieUrl) {
         Document document = getDocument(movieUrl);
         Elements typeRow = document.select(".dllink_box.yellow");
